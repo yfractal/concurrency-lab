@@ -5,10 +5,11 @@ module OTP
     @@schedulers = []
     @@pid_to_object = {}
     @@pid_to_scheduler_num = {}
-    @@process_counter = 0
     @@_pid = 0
+
     @@pid_to_object_mutex = Mutex.new
     @@spawn_mutex = Mutex.new
+    @@mutex = Mutex.new
 
     class << self
       def start_schedulers(n)
@@ -25,22 +26,21 @@ module OTP
       end
 
       def spawn(klass, *args)
-        @@spawn_mutex.synchronize {
-          scheduler_num = @@process_counter % @@schedulers.count
-          scheduler = @@schedulers[scheduler_num]
+        scheduler_num = @@_pid % @@schedulers.count
 
-          process = klass.send(:new, *args)
+        process = klass.send(:new, *args)
 
+        @@mutex.synchronize{
           pid = gen_pid
 
           @@pid_to_object_mutex.synchronize {
             @@pid_to_object[pid] = process
           }
+
           @@pid_to_scheduler_num[pid] = scheduler_num
 
-          process.self_pid = pid
 
-          @@process_counter += 1
+          process.self_pid = pid
 
           pid
         }
