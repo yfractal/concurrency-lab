@@ -1,18 +1,30 @@
 require "bundler/setup"
 require "OTP"
 
-class Skynet < OTP::Process
-  def initialize(scheduler, parent)
+class Reporter < OTP::Process
+  def initialize
     super()
-    @scheduler = scheduler
+    t0 = Time.now
+    receive(:report) do |r|
+      t1 = Time.now
+      puts "The result is #{r}."
+      puts "Takes #{(t1 - t0) * 1000} ms."
+    end
+  end
+end
+
+class Skynet < OTP::Process
+  def initialize(parent, reporter = nil)
+    super()
     @parent = parent
+    @reporter = reporter if reporter
     spawn_children
   end
 
   def spawn_children
     receive(:spawn_children) do |num, size, div|
       if size <= 1
-        @scheduler.send_message(@parent, :sum, num) if @parent
+        OTP::Scheduler.send_message(@parent, :sum, num) if @parent
       else
         do_spawn_children(num, size, div)
 
@@ -27,9 +39,9 @@ class Skynet < OTP::Process
         process_sum(div, received + 1, total + n)
       else
         if @parent
-          @scheduler.send_message(@parent, :sum, total + n)
+          OTP::Scheduler.send_message(@parent, :sum, total + n)
         else
-          puts "The result is #{total + n}"
+          OTP::Scheduler.send_message(@reporter, :report, total + n)
         end
       end
     end
@@ -39,23 +51,26 @@ class Skynet < OTP::Process
     new_size = size / div
 
     div.times do |x|
-      pid = @scheduler.spawn(Skynet, @scheduler, self_pid)
+      pid = OTP::Scheduler.spawn(Skynet, self_pid)
 
-      @scheduler.
+      OTP::Scheduler.
         send_message(pid, :spawn_children, num + x * new_size, new_size, div)
     end
   end
 end
 
+OTP::Scheduler.start_schedulers(4)
 
-scheduler = OTP::Scheduler.new
 num, size, div = 0, 1000000, 10
 
-skynet_pid = scheduler.spawn(Skynet, scheduler, nil)
-scheduler.send_message(skynet_pid, :spawn_children, num, size, div)
+reporter = OTP::Scheduler.spawn(Reporter)
 
-t0 = Time.now
-scheduler.loop
+skynet_pid = OTP::Scheduler.spawn(Skynet, nil, reporter)
 
-t1 = Time.now
-puts "Takes #{(t1 - t0) * 1000} ms."
+OTP::Scheduler.send_message(skynet_pid, :spawn_children, num, size, div)
+
+while true
+  sleep(1)
+
+  puts "looping"
+end

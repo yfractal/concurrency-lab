@@ -4,6 +4,7 @@ module OTP
 
     def initialize
       @mailbox = []
+      @receivers = []
     end
 
     def send_to_mailbox(msg)
@@ -12,7 +13,6 @@ module OTP
 
     ## TODO: find a better receive syntax
     def receive(type, &block)
-      @receivers ||= []
       @receivers << [type, block.arity + 1, block]
     end
 
