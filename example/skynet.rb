@@ -61,7 +61,7 @@ end
 
 OTP::Scheduler.start_schedulers(4)
 
-num, size, div = 0, 5000, 10
+num, size, div = 0, 100000, 10
 
 reporter = OTP::Scheduler.spawn(Reporter)
 
