@@ -5,10 +5,13 @@ module OTP
     def initialize
       @mailbox = []
       @receivers = []
+      @mutex = Mutex.new
     end
 
     def send_to_mailbox(msg)
-      @mailbox << msg
+      @mutex.synchronize {
+        @mailbox << msg
+      }
     end
 
     ## TODO: find a better receive syntax
@@ -28,7 +31,10 @@ module OTP
 
             receiver[2].call *msg[1..-1]
 
-            @mailbox.delete_at i
+            @mutex.synchronize {
+              @mailbox.delete_at i
+            }
+
             state = if @receivers.empty?
                       # no receivers, process dead
                       :dead
