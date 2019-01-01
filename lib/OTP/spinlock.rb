@@ -1,9 +1,10 @@
 require "concurrent"
 module OTP
   class Spinlock
-    def initialize(spin = 524288)
+    def initialize(name, spin = 1024)
       @lock = Concurrent::AtomicFixnum.new
       @spin = spin
+      @name = name
     end
 
     def lock
@@ -19,8 +20,7 @@ module OTP
             i += 1
           end
 
-          puts "Current spin: #{n}"
-
+          # puts "Confilic for #{@name}"
           return if @lock.compare_and_set(0, 1)
         end
       end

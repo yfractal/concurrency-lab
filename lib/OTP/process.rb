@@ -5,13 +5,14 @@ module OTP
     def initialize
       @mailbox = []
       @receivers = []
-      @mutex = Mutex.new
+
+      @lock = OTP::Spinlock.new "Mailbox"
     end
 
     def send_to_mailbox(msg)
-      @mutex.synchronize {
-        @mailbox << msg
-      }
+      @lock.lock
+      @mailbox << msg
+      @lock.unlock
     end
 
     ## TODO: find a better receive syntax
@@ -31,9 +32,9 @@ module OTP
 
             receiver[2].call *msg[1..-1]
 
-            @mutex.synchronize {
-              @mailbox.delete_at i
-            }
+            @lock.lock
+            @mailbox.delete_at i
+            @lock.unlock
 
             state = if @receivers.empty?
                       # no receivers, process dead

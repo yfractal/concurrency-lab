@@ -7,9 +7,8 @@ module OTP
     @@pid_to_scheduler_num = {}
     @@_pid = 0
 
-    @@pid_to_object_mutex = Mutex.new
-    @@spawn_mutex = Mutex.new
-    @@mutex = Mutex.new
+    @@pid_lock = OTP::Spinlock.new("pid_lock")
+    @@lock = OTP::Spinlock.new("spawn")
 
     class << self
       def start_schedulers(n)
@@ -29,21 +28,20 @@ module OTP
         scheduler_num = @@_pid % @@schedulers.count
 
         process = klass.send(:new, *args)
+        @@lock.lock
+        pid = gen_pid
 
-        @@mutex.synchronize{
-          pid = gen_pid
+        @@pid_lock.lock
+        @@pid_to_object[pid] = process
+        @@pid_lock.unlock
 
-          @@pid_to_object_mutex.synchronize {
-            @@pid_to_object[pid] = process
-          }
-
-          @@pid_to_scheduler_num[pid] = scheduler_num
+        @@pid_to_scheduler_num[pid] = scheduler_num
 
 
-          process.self_pid = pid
+        process.self_pid = pid
 
-          pid
-        }
+        @@lock.unlock
+        pid
       end
 
       def pid_to_scheduler(pid)
@@ -65,46 +63,47 @@ module OTP
 
     def initialize
       @runnable_pids = []
-      @runnable_pids_mutex = Mutex.new
+      @lock = OTP::Spinlock.new "Runnable pids"
     end
 
     def send_message(pid, *args)
-      process = @@pid_to_object_mutex.synchronize {
-        @@pid_to_object[pid]
-      }
+      @@pid_lock.lock
+      process = @@pid_to_object[pid]
+      @@pid_lock.unlock
 
       process.send_to_mailbox(args)
 
-      @runnable_pids_mutex.synchronize {
-        @runnable_pids << pid
-      }
+      @lock.lock
+      @runnable_pids << pid
+      @lock.unlock
     end
 
     def loop
       while true
-        pid = @runnable_pids_mutex.synchronize {
-          @runnable_pids.shift
-        }
+        @lock.lock
+        pid = @runnable_pids.shift
+        @lock.unlock
 
         while pid
-          process = @@pid_to_object_mutex.synchronize {
-            @@pid_to_object[pid]
-          }
+          @@pid_lock.lock
+          process = @@pid_to_object[pid]
+          @@pid_lock.unlock
 
           state = process.resume
 
           if state == :dead
-            @@pid_to_object_mutex.synchronize {
-              @@pid_to_object.delete(pid)
-            }
+            @@pid_lock.lock
+
+            @@pid_to_object.delete(pid)
+            @@pid_to_scheduler_num.delete(pid)
+
+            @@pid_lock.unlock
           end
 
-          pid = @runnable_pids_mutex.synchronize {
-            @runnable_pids.shift
-          }
+          @lock.lock
+          pid = @runnable_pids.shift
+          @lock.unlock
         end
-
-        sleep(0.01)
       end
     end
   end

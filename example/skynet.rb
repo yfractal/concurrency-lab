@@ -61,7 +61,7 @@ end
 
 OTP::Scheduler.start_schedulers(4)
 
-num, size, div = 0, 100000, 10
+num, size, div = 0, 1000000, 10
 
 reporter = OTP::Scheduler.spawn(Reporter)
 
@@ -70,7 +70,7 @@ skynet_pid = OTP::Scheduler.spawn(Skynet, nil, reporter)
 OTP::Scheduler.send_message(skynet_pid, :spawn_children, num, size, div)
 
 while true
-  sleep(5)
+  sleep(10)
 
   puts "looping"
 end
