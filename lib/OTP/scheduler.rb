@@ -3,7 +3,6 @@ require 'thwait'
 module OTP
   class Scheduler
     @@schedulers = []
-    @@pid_to_object = {}
     @@pid_to_scheduler_num = {}
     @@_pid = 0
 
@@ -31,16 +30,13 @@ module OTP
         @@lock.lock
         pid = gen_pid
 
-        @@pid_lock.lock
-        @@pid_to_object[pid] = process
-        @@pid_lock.unlock
-
+        @@schedulers[scheduler_num].set_pid_to_process(pid, process)
         @@pid_to_scheduler_num[pid] = scheduler_num
-
 
         process.self_pid = pid
 
         @@lock.unlock
+
         pid
       end
 
@@ -64,12 +60,13 @@ module OTP
     def initialize
       @runnable_pids = []
       @lock = OTP::Spinlock.new "Runnable pids"
+
+      @pid_to_process = {}
+      @pid_to_process_lock = OTP::Spinlock.new "pid_to_process_lock"
     end
 
     def send_message(pid, *args)
-      @@pid_lock.lock
-      process = @@pid_to_object[pid]
-      @@pid_lock.unlock
+      process = get_process(pid)
 
       process.send_to_mailbox(args)
 
@@ -85,26 +82,36 @@ module OTP
         @lock.unlock
 
         while pid
-          @@pid_lock.lock
-          process = @@pid_to_object[pid]
-          @@pid_lock.unlock
-
+          process = get_process(pid)
           state = process.resume
 
-          if state == :dead
-            @@pid_lock.lock
-
-            @@pid_to_object.delete(pid)
-            @@pid_to_scheduler_num.delete(pid)
-
-            @@pid_lock.unlock
-          end
+          delete_process(pid) if state == :dead
 
           @lock.lock
           pid = @runnable_pids.shift
           @lock.unlock
         end
       end
+    end
+
+    def set_pid_to_process(pid, process)
+      @pid_to_process_lock.lock
+      @pid_to_process[pid] = process
+      @pid_to_process_lock.unlock
+    end
+
+    def get_process(pid)
+      @pid_to_process_lock.lock
+      process = @pid_to_process[pid]
+      @pid_to_process_lock.unlock
+
+      process
+    end
+
+    def delete_process(pid)
+      @pid_to_process_lock.lock
+      @pid_to_process.delete(pid)
+      @pid_to_process_lock.unlock
     end
   end
 end
