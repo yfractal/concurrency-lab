@@ -6,8 +6,10 @@ module OTP
     @@pid_to_scheduler_num = {}
     @@_pid = 0
 
-    @@pid_lock = OTP::Spinlock.new("pid_lock")
-    @@lock = OTP::Spinlock.new("spawn")
+    @@pid_lock = OTP::Spinlock.new("Pid")
+    @@lock = OTP::Spinlock.new("Spawn")
+
+    @@pid_to_scheduler_num_lock = OTP::Spinlock.new("PidToSchedulerNum")
 
     class << self
       def start_schedulers(n)
@@ -31,7 +33,10 @@ module OTP
         pid = gen_pid
 
         @@schedulers[scheduler_num].set_pid_to_process(pid, process)
+
+        @@pid_to_scheduler_num_lock.lock
         @@pid_to_scheduler_num[pid] = scheduler_num
+        @@pid_to_scheduler_num_lock.unlock
 
         process.self_pid = pid
 
@@ -41,7 +46,9 @@ module OTP
       end
 
       def pid_to_scheduler(pid)
+        @@pid_to_scheduler_num_lock.lock
         scheduler_num = @@pid_to_scheduler_num[pid]
+        @@pid_to_scheduler_num_lock.unlock
 
         @@schedulers[scheduler_num]
       end
@@ -112,6 +119,10 @@ module OTP
       @pid_to_process_lock.lock
       @pid_to_process.delete(pid)
       @pid_to_process_lock.unlock
+
+      @@pid_to_scheduler_num_lock.lock
+      @@pid_to_scheduler_num.delete(pid)
+      @@pid_to_scheduler_num_lock.unlock
     end
   end
 end
