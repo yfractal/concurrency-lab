@@ -14,13 +14,11 @@ module Goroutine
 
     def take
       if @queue.empty?
-        @fiber = Fiber.yield
+        # set fiber
+        @fiber = Fiber.yield unless @fiber
 
         Fiber.yield
       else
-        @fiber = Fiber.yield
-        @fiber = nil
-
         @queue.shift
       end
     end
@@ -31,24 +29,36 @@ def go(&block)
   fiber = Fiber.new &block
   fiber.resume
 
-  fiber.resume(fiber)
+  fiber.resume(fiber) if fiber.alive?
 end
 
-# example 1: take then add
+puts "example 1: take then add"
 channel = Goroutine::Channel.new
 
 go do
   e = channel.take
   puts e
 end
-
 channel.add(1)
 
-# example 2: add then take
+puts "example 2: add then take"
 channel = Goroutine::Channel.new
 channel.add(1)
 
 go do
   e = channel.take
   puts e
+end
+
+puts "example 3: add, add, take"
+channel = Goroutine::Channel.new
+channel.add(1)
+channel.add(2)
+
+go do
+  e1 = channel.take
+  puts e1
+
+  e2 = channel.take
+  puts e2
 end
