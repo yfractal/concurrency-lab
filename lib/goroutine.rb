@@ -9,7 +9,7 @@ module Goroutine
     def add(e)
       @queue << e
 
-      @fiber.resume(@queue.shift)
+      @fiber.resume(@queue.shift) if @fiber
     end
 
     def take
@@ -18,6 +18,9 @@ module Goroutine
 
         Fiber.yield
       else
+        @fiber = Fiber.yield
+        @fiber = nil
+
         @queue.shift
       end
     end
@@ -31,12 +34,21 @@ def go(&block)
   fiber.resume(fiber)
 end
 
-# example 1
+# example 1: take then add
 channel = Goroutine::Channel.new
 
-f = go do
+go do
   e = channel.take
   puts e
 end
 
 channel.add(1)
+
+# example 2: add then take
+channel = Goroutine::Channel.new
+channel.add(1)
+
+go do
+  e = channel.take
+  puts e
+end
