@@ -8,22 +8,20 @@ module Goroutine
 
     def add(e)
       @queue << e
-      if @go_fiber && @go_fiber.alive?
+
+      if @waiting
+        @waiting = false
         @go_fiber.resume(@queue.shift)
-      else
-        @go_fiber = nil
       end
     end
 
     def take
-      if @queue.empty?
-        # set fiber
-        @go_fiber = Fiber.yield unless @go_fiber
+      @go_fiber = Fiber.yield unless @go_fiber
 
+      if @queue.empty?
+        @waiting = true
         Fiber.yield
       else
-        @go_fiber = Fiber.yield unless @go_fiber
-
         @queue.shift
       end
     end
