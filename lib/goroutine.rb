@@ -1,6 +1,13 @@
 require "fiber"
 
 module Goroutine
+  def self.go(&block)
+    fiber = Fiber.new &block
+    fiber.resume
+
+    fiber.resume(fiber)
+  end
+
   class Channel
     def initialize
       @queue = []
@@ -28,17 +35,10 @@ module Goroutine
   end
 end
 
-def go(&block)
-  fiber = Fiber.new &block
-  fiber.resume
-
-  fiber.resume(fiber)
-end
-
 puts "example 1: take then add"
 channel = Goroutine::Channel.new
 
-go do
+Goroutine.go do
   e = channel.take
   puts e
 end
@@ -48,7 +48,7 @@ puts "example 2: add then take"
 channel = Goroutine::Channel.new
 channel.add(1)
 
-go do
+Goroutine.go do
   e = channel.take
   puts e
 end
@@ -58,7 +58,7 @@ channel = Goroutine::Channel.new
 channel.add(1)
 channel.add(2)
 
-go do
+Goroutine.go do
   e1 = channel.take
   puts e1
 
@@ -71,7 +71,7 @@ puts "example 4: add, take, add, take"
 channel = Goroutine::Channel.new
 channel.add(1)
 
-go do
+Goroutine.go do
   e1 = channel.take
   puts e1
 
