@@ -1,7 +1,7 @@
 require "concurrent"
 module OTP
   class Spinlock
-    def initialize(name, spin = 1024)
+    def initialize(name = "", spin = 1024)
       @lock = Concurrent::AtomicFixnum.new
       @spin = spin
       @name = name
