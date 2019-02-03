@@ -8,9 +8,9 @@ module OTP
     end
 
     def lock
-      while true
-        return if @lock.compare_and_set(0, 1)
+      return if @lock.compare_and_set(0, 1)
 
+      while true
         n = 1
         while n < @spin
           n << 1
