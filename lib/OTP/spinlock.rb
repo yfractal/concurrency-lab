@@ -1,16 +1,16 @@
 require "concurrent"
 module OTP
   class Spinlock
-    def initialize(name, spin = 1024)
+    def initialize(name = "", spin = 1024)
       @lock = Concurrent::AtomicFixnum.new
       @spin = spin
       @name = name
     end
 
     def lock
-      while true
-        return if @lock.compare_and_set(0, 1)
+      return if @lock.compare_and_set(0, 1)
 
+      while true
         n = 1
         while n < @spin
           n << 1
