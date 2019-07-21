@@ -95,6 +95,7 @@ module OTP
           delete_process(pid) if state == :dead
 
           @lock.lock
+          @runnable_pids << pid if state == :runnable
           pid = @runnable_pids.shift
           @lock.unlock
         end
