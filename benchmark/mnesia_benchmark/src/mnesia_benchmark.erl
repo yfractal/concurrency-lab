@@ -1,6 +1,7 @@
 -module(mnesia_benchmark).
 
--export([create_table/0, insert_data/0, find/1]).
+-export([create_table/0, insert_data/0,
+         find/1, dirty_find/1]).
 
 -record(kv_record, {key, val}).
 
@@ -28,3 +29,6 @@ find(Key) ->
     F = fun () -> mnesia:read(kv_record, Key) end,
     {atomic, [Item]} = mnesia:transaction(F),
     Item.
+
+dirty_find(Key) ->
+    mnesia:dirty_read(kv_record, Key).
