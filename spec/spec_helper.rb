@@ -1,4 +1,5 @@
 require "bundler/setup"
+require "pry"
 require "OTP"
 
 RSpec.configure do |config|
