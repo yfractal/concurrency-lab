@@ -21,4 +21,15 @@ RSpec.describe LinearHash do
       expect(hash.get(5)).to eq(nil)
     end
   end
+
+  describe "overflow without grow" do
+    it "put and get" do
+      hash = LinearHash::Hash.new
+      hash.put(1, 10)
+      hash.put(5, 50)
+
+      expect(hash.get(1)).to eq(10)
+      expect(hash.get(5)).to eq(50)
+    end
+  end
 end

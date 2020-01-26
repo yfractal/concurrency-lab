@@ -1,12 +1,41 @@
 module LinearHash
+  class Segnment
+    def initialize
+      @segnment = []
+      @overflow_segnment = []
+    end
+
+    def put(index, key, val)
+      if @segnment[index]
+        @overflow_segnment << [key, val]
+      else
+        @segnment[index] = [key, val]
+      end
+    end
+
+    def get(index, key)
+      bucket = @segnment[index] || []
+
+      k, v = bucket[0], bucket[1]
+
+      if k == key
+        v
+      else
+        @overflow_segnment.each do |k, v|
+          return v if k == key
+        end
+
+        nil
+      end
+    end
+  end
+
   class Hash
     def initialize
       @level = 1
       @segnment_size = 4
-      @table = [[]]
-    end
-
-    def get(key)
+      segnment = Segnment.new
+      @table = [segnment]
     end
 
     def put(key, val)
@@ -15,7 +44,7 @@ module LinearHash
       segnment = @table[segnment_index]
       bucket_index = bucket_index(hash_val)
 
-      segnment[bucket_index] = [key, val]
+      segnment.put(bucket_index, key, val)
     end
 
     def get(key)
@@ -24,15 +53,7 @@ module LinearHash
       segnment = @table[segnment_index]
       bucket_index = bucket_index(hash_val)
 
-      bucket = segnment[bucket_index] || []
-
-      k, v = bucket[0], bucket[1]
-
-      if k == key
-        v
-      else
-        nil
-      end
+      segnment.get(bucket_index, key)
     end
 
     def hash_val(key)
