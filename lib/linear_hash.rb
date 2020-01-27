@@ -133,7 +133,7 @@ module LinearHash
       segnment_bit = Math.log @segnment_size, 2
 
       index = hash_val >> segnment_bit
-      if index <= @next_segnment_index * 2
+      if index < @next_segnment_index + 2.pow(@level)
         index
       else
         # drop first bit

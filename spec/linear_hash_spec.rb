@@ -66,4 +66,64 @@ RSpec.describe LinearHash do
       expect(hash.get(5)).to eq(50)
     end
   end
+
+  describe "integration test" do
+    it "test" do
+      keys = [5, 1, 3, 20, 16, 4, 13, 17, 8, 15, 11, 12, 7, 14, 19]
+      # puts "for random keys #{keys}"
+      hash = LinearHash::Hash.new
+
+      keys.each do |key|
+        hash.put(key, key * 10)
+        expect(hash.get(key)).to eq(key * 10)
+      end
+
+      keys.each do |key|
+        expect(hash.get(key)).to eq(key * 10)
+      end
+    end
+
+    it "100 random keys" do
+      keys = (1..100).to_a.shuffle
+      hash = LinearHash::Hash.new
+
+      keys.each do |key|
+        hash.put(key, key * 10)
+        expect(hash.get(key)).to eq(key * 10)
+      end
+
+      keys.each do |key|
+        expect(hash.get(key)).to eq(key * 10)
+      end
+    end
+
+    it "100000 random keys" do
+      keys = []
+      100000.times do
+        keys << rand(1000000)
+      end
+      keys.uniq! # do not support duplicated keys
+
+      hash = LinearHash::Hash.new
+
+      keys.each do |key|
+        hash.put(key, key * 10)
+        expect(hash.get(key)).to eq(key * 10)
+      end
+
+      keys.each do |key|
+        expect(hash.get(key)).to eq(key * 10)
+      end
+
+      table = hash.instance_variable_get("@table")
+      max_overflow_segnment_size = 0
+
+      table.each do |segnment|
+        overflow_segnment_size = segnment.overflow_segnment.size
+        max_overflow_segnment_size = [max_overflow_segnment_size, overflow_segnment_size].max
+      end
+
+      puts "max_overflow_segnment_size is #{max_overflow_segnment_size}"
+    end
+  end
 end
