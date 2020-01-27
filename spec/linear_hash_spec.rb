@@ -116,14 +116,14 @@ RSpec.describe LinearHash do
       end
 
       table = hash.instance_variable_get("@table")
-      max_overflow_segnment_size = 0
+      max_overflow_segment_size = 0
 
-      table.each do |segnment|
-        overflow_segnment_size = segnment.overflow_segnment.size
-        max_overflow_segnment_size = [max_overflow_segnment_size, overflow_segnment_size].max
+      table.each do |segment|
+        overflow_segment_size = segment.overflow_segment.size
+        max_overflow_segment_size = [max_overflow_segment_size, overflow_segment_size].max
       end
 
-      puts "max_overflow_segnment_size is #{max_overflow_segnment_size}"
+      puts "max_overflow_segment_size is #{max_overflow_segment_size}"
     end
   end
 end
