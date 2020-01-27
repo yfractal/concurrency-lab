@@ -1,4 +1,6 @@
 module LinearHash
+  # Introduction: https://ruby-china.org/topics/39466
+
   class Segment
     attr_reader :segment, :overflow_segment
 
