@@ -123,10 +123,10 @@ module LinearHash
     end
 
     def hash_val(key)
-      raise "Key should be integer, but the key is #{key.inspect}" if key.class != Integer
+      raise "Key should be positive integer, but the key is #{key.inspect}" if key.class != Integer or key < 0
       total_buckets = 2.pow(@level + 1) * @segnment_size
 
-      key.abs % total_buckets
+      key % total_buckets
     end
 
     def segnment_index(hash_val)
