@@ -5,11 +5,16 @@ module LinearHash
     def initialize
       @segnment = []
       @overflow_segnment = []
+      @overflowed = false
     end
 
     def put(index, key, val)
       if @segnment[index]
         @overflow_segnment << [key, val]
+        if !@overflowed
+          @overflowed = true
+          :need_grow
+        end
       else
         @segnment[index] = [key, val]
       end
@@ -36,8 +41,9 @@ module LinearHash
     def initialize
       @level = 0
       @segnment_size = 4
-      segnment = Segnment.new
-      @table = [segnment]
+      @table = [Segnment.new]
+      @times_to_grow = 0
+      @next_segnment_index = 0
     end
 
     def put(key, val)
@@ -46,7 +52,11 @@ module LinearHash
       segnment = @table[segnment_index]
       bucket_index = bucket_index(hash_val)
 
-      segnment.put(bucket_index, key, val)
+      put_segnment(segnment, bucket_index, key, val)
+    end
+
+    def put_segnment(segnment, bucket_index, key, val)
+      @times_to_grow += 1 if :need_grow == segnment.put(bucket_index, key, val)
     end
 
     def get(key)
@@ -59,7 +69,7 @@ module LinearHash
     end
 
     def grow
-      @next_segnment_index = 0
+      # return if @times_to_grow == 0
       from_segnment_index = @next_segnment_index
       original_segnment = @table[@next_segnment_index]
 
@@ -71,50 +81,65 @@ module LinearHash
       original_segnment.segnment.each do |key, val|
         next if key == nil
 
-        hash_val = hash_val(key, next_level)
-        segnment_index = segnment_index(hash_val)
+        hash_val = hash_val(key)
+        segnment_index = segnment_index_next(hash_val)
 
         bucket_index = bucket_index(hash_val)
 
         if segnment_index == @next_segnment_index
-          segnment_for_replace.put(bucket_index, key, val)
+          put_segnment(segnment_for_replace, bucket_index, key, val)
         else
-
-          new_segnment.put(bucket_index, key, val)
+          put_segnment(new_segnment, bucket_index, key, val)
         end
       end
 
       original_segnment.overflow_segnment.each do |key, val|
         next if key == nil
 
-        hash_val = hash_val(key, next_level)
+        hash_val = hash_val(key)
 
-        segnment_index = segnment_index(hash_val)
+        segnment_index = segnment_index_next(hash_val)
         bucket_index = bucket_index(hash_val)
 
         if segnment_index == @next_segnment_index
-          segnment_for_replace.put(bucket_index, key, val)
+          put_segnment(segnment_for_replace, bucket_index, key, val)
         else
-          new_segnment.put(bucket_index, key, val)
+          put_segnment(new_segnment, bucket_index, key, val)
         end
       end
 
       @table[from_segnment_index] = segnment_for_replace
       @table << new_segnment
+      @times_to_grow -= 1
+      @next_segnment_index += 1
 
-      @level += 1
+      if @table.size == 2.pow(next_level)
+        @level = next_level
+        @next_segnment_index = 0
+      end
     end
 
-    def hash_val(key, level = @level)
+    def hash_val(key)
       raise "Key should be integer, but the key is #{key.inspect}" if key.class != Integer
-      total_buckets = 2.pow(level) * @segnment_size
+      total_buckets = 2.pow(@level + 1) * @segnment_size
 
-      key % total_buckets
+      key.abs % total_buckets
     end
 
     def segnment_index(hash_val)
       segnment_bit = Math.log @segnment_size, 2
 
+      index = hash_val >> segnment_bit
+      if index <= @next_segnment_index * 2
+        index
+      else
+        # drop first bit
+        index & (2.pow(@level) - 1)
+      end
+    end
+
+    def segnment_index_next(hash_val)
+      segnment_bit = Math.log @segnment_size, 2
       hash_val >> segnment_bit
     end
 
