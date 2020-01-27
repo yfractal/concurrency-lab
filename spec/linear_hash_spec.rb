@@ -33,18 +33,17 @@ RSpec.describe LinearHash do
     end
   end
 
-  describe "handle grow manualy" do
+  describe "handle grow" do
     it "grow once" do
       hash = LinearHash::Hash.new
 
       hash.put(1, 10)
-      hash.put(5, 50)
+      hash.put(5, 50) # will split one
 
       expect(hash.get(1)).to eq(10)
       expect(hash.get(5)).to eq(50)
 
-      hash.grow
-      # hash.grow # grow should be idempotent
+      hash.maybe_grow # grow should be idempotent
 
       expect(hash.get(1)).to eq(10)
       expect(hash.get(5)).to eq(50)
@@ -59,12 +58,8 @@ RSpec.describe LinearHash do
       expect(hash.get(1)).to eq(10)
       expect(hash.get(5)).to eq(50)
 
-      hash.grow
-
       hash.put(9, 90) # 9: 1001
       expect(hash.get(9)).to eq(90)
-
-      hash.grow
 
       expect(hash.get(9)).to eq(90)
       expect(hash.get(1)).to eq(10)

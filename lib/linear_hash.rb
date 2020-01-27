@@ -53,6 +53,8 @@ module LinearHash
       bucket_index = bucket_index(hash_val)
 
       put_segnment(segnment, bucket_index, key, val)
+
+      maybe_grow
     end
 
     def put_segnment(segnment, bucket_index, key, val)
@@ -68,8 +70,9 @@ module LinearHash
       segnment.get(bucket_index, key)
     end
 
-    def grow
-      # return if @times_to_grow == 0
+    def maybe_grow
+      return if @times_to_grow == 0
+
       from_segnment_index = @next_segnment_index
       original_segnment = @table[@next_segnment_index]
 
