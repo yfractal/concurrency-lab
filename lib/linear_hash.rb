@@ -74,14 +74,14 @@ module LinearHash
       return if @times_to_grow == 0
 
       from_segnment_index = @next_segnment_index
-      original_segnment = @table[@next_segnment_index]
+      segnment = @table[@next_segnment_index]
 
-      segnment_for_replace = Segnment.new
-      new_segnment = Segnment.new
+      new_segnment1 = Segnment.new
+      new_segnment2 = Segnment.new
 
       next_level = @level + 1
 
-      original_segnment.segnment.each do |key, val|
+      segnment.segnment.each do |key, val|
         next if key == nil
 
         hash_val = hash_val(key)
@@ -90,13 +90,13 @@ module LinearHash
         bucket_index = bucket_index(hash_val)
 
         if segnment_index == @next_segnment_index
-          put_segnment(segnment_for_replace, bucket_index, key, val)
+          put_segnment(new_segnment1, bucket_index, key, val)
         else
-          put_segnment(new_segnment, bucket_index, key, val)
+          put_segnment(new_segnment2, bucket_index, key, val)
         end
       end
 
-      original_segnment.overflow_segnment.each do |key, val|
+      segnment.overflow_segnment.each do |key, val|
         next if key == nil
 
         hash_val = hash_val(key)
@@ -105,14 +105,14 @@ module LinearHash
         bucket_index = bucket_index(hash_val)
 
         if segnment_index == @next_segnment_index
-          put_segnment(segnment_for_replace, bucket_index, key, val)
+          put_segnment(new_segnment1, bucket_index, key, val)
         else
-          put_segnment(new_segnment, bucket_index, key, val)
+          put_segnment(new_segnment2, bucket_index, key, val)
         end
       end
 
-      @table[from_segnment_index] = segnment_for_replace
-      @table << new_segnment
+      @table[from_segnment_index] = new_segnment1
+      @table << new_segnment2
       @times_to_grow -= 1
       @next_segnment_index += 1
 
