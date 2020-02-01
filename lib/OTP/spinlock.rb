@@ -21,7 +21,7 @@ module OTP
           end
 
           # puts "Confilic for #{@name}"
-          return if @lock.compare_and_set(0, 1)
+          return if @lock.vaue == 0 && @lock.compare_and_set(0, 1)
         end
       end
     end
